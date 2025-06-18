@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <title>2025 Tercih Robotu</title>
+  <style>
+    body { font-family: Arial; background: #f4f4f4; padding: 20px; }
+    label, select, input { display: block; margin: 10px 0; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+    th { background-color: #eee; }
+    button { margin: 5px; padding: 8px 12px; cursor: pointer; }
+    .container { display: flex; gap: 20px; }
+    .left-section, .right-section { flex: 1; }
+    .preference-list { border: 1px solid #ccc; padding: 10px; margin-top: 20px; min-height: 100px; }
+    .preference-item { padding: 5px; margin: 5px 0; background: #e9e9e9; display: flex; justify-content: space-between; align-items: center; }
+    .preference-item button { padding: 2px 5px; }
+    .tab-buttons { display: flex; margin-bottom: 10px; }
+    .tab-button { flex: 1; padding: 10px; background: #ddd; border: none; cursor: pointer; }
+    .tab-button.active { background: #bbb; font-weight: bold; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .rules-info { background: #fff3cd; padding: 10px; margin: 10px 0; border-left: 4px solid #ffc107; }
+    .print-section { margin-top: 20px; padding: 15px; background: white; border: 1px solid #ddd; }
+    .reorder-buttons { display: flex; flex-direction: column; margin-left: 10px; }
+    .reorder-buttons button { margin: 2px; padding: 2px 5px; }
+    @media print {
+      .no-print { display: none; }
+      body { background: white; padding: 0; }
+      .print-section { border: none; padding: 0; }
+      .print-output { display: block !important; }
+    }
+    .print-output { display: none; background: white; padding: 20px; margin-top: 20px; border: 1px solid #ddd; width: 100%; box-sizing: border-box; }
+    .print-header { text-align: center; margin-bottom: 20px; }
+    .print-footer { text-align: center; margin-top: 30px; font-size: 12px; color: #666; }
+    .print-table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+    .print-table th, .print-table td { border: 1px solid #ddd; padding: 8px; }
+    .print-table th { background-color: #f2f2f2; }
+    .warning { 
+      color: red;
+      font-weight: bold;
+      margin: 10px 0;
+      padding: 10px;
+      background-color: #ffeeee;
+      border: 1px solid red;
+      border-radius: 5px;
+    }
+    .highlight { 
+      background-color: #fffacd;
+      padding: 15px;
+      border-left: 4px solid #ffd700;
+      margin: 10px 0;
+    }
+    .disclaimer {
+      background-color: #f8f9fa;
+      padding: 15px;
+      border-left: 4px solid #6c757d;
+      margin: 20px 0;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <h2>2025 Tercih Robotu</h2>
+
+  <div class="disclaimer">
+    <strong>Uyarı:</strong> Bu sayfa halka açık kaynaklar kullanılarak tercih yapacak öğrencilere yardımcı olmak amacıyla hazırlanmıştır. 
+    Sayfada yer alan bilgilerde hata olabilir. Resmi bir geçerliliği yoktur.
+  </div>
+
+  <div class="container">
+    <div class="left-section no-print">
+      <label for="type">Yerleştirme Türü:</label>
+      <select id="type">
+        <option value="Merkezi">Merkezi</option>
+        <option value="Yerel">Yerel</option>
+      </select>
+
+      <div id="scoreBlock">
+        <label for="score">Yüzdelik Diliminiz (%):</label>
+        <input type="number" id="score" step="0.01">
+      </div>
+
+      <div id="obpBlock" style="display:none">
+        <label for="obp">OBP (Ortaokul Başarı Puanı - 0-100 arası):</label>
+        <input type="number" id="obp" step="0.01" min="0" max="100">
+      </div>
+
+      <label for="schoolType">Okul Türü:</label>
+      <select id="schoolType">
+        <option value="">Hepsi</option>
+        <option value="Fen">Fen</option>
+        <option value="Anadolu">Anadolu</option>
+        <option value="Sosyal Bilimler">Sosyal Bilimler</option>
+        <option value="İHL">İHL</option>
+        <option value="Meslek">Meslek</option>
+      </select>
+
+      <button onclick="filterSchools()">Filtrele</button>
+
+      <h3>Önerilen Okullar</h3>
+      <ul id="suggestions"></ul>
+
+      <table id="results">
+        <thead>
+          <tr>
+            <th>Okul Adı</th>
+            <th>Tür</th>
+            <th>Yüzdelik Dilim / OBP</th>
+            <th>Yerleştirme Türü</th>
+            <th>Yorum</th>
+            <th>Eylem</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div class="right-section">
+      <div class="tab-buttons no-print">
+        <button class="tab-button active" onclick="showTab('merkeziTab')">Merkezi Tercihler</button>
+        <button class="tab-button" onclick="showTab('yerelTab')">Yerel Tercihler</button>
+      </div>
+
+      <div class="rules-info no-print">
+        <strong>Tercih Kuralları:</strong>
+        <ul>
+          <li><strong>Merkezi Tercihler:</strong> En fazla 10 okul seçilebilir. Sıralama önemlidir.</li>
+          <li><strong>Yerel Tercihler:</strong> Toplam 5 okul seçilebilir. Aynı okul türünden en fazla 3 okul seçilebilir.</li>
+          <li class="highlight"><strong>ÖNEMLİ:</strong> Merkezi tercih yapabilmek için önce en az 1 yerel tercih yapmalısınız!</li>
+          <li>Her iki liste için de aynı okul birden fazla eklenemez.</li>
+        </ul>
+      </div>
+
+      <div id="merkeziTab" class="tab-content active">
+        <h3>Merkezi Tercih Listesi (<span id="merkeziCount">0</span>/10)</h3>
+        <div id="merkeziWarning" class="warning" style="display: none;">
+          <strong>DİKKAT:</strong> Merkezi tercih yapabilmek için önce en az 1 yerel tercih yapmalısınız!
+          <button onclick="showTab('yerelTab')" style="margin-left: 10px;">Yerel Tercih Ekle</button>
+        </div>
+        <div class="preference-list" id="merkeziPreferenceList"></div>
+        <div class="no-print">
+          <button onclick="savePreferences()">Tercihlerimi Kaydet</button>
+          <button onclick="loadPreferences()">Kayıtlı Tercihleri Yükle</button>
+          <button onclick="clearPreferences('merkezi')">Listeyi Temizle</button>
+        </div>
+      </div>
+
+      <div id="yerelTab" class="tab-content">
+        <h3>Yerel Tercih Listesi (<span id="yerelCount">0</span>/5)</h3>
+        <div class="preference-list" id="yerelPreferenceList"></div>
+        <div class="no-print">
+          <button onclick="savePreferences()">Tercihlerimi Kaydet</button>
+          <button onclick="loadPreferences()">Kayıtlı Tercihleri Yükle</button>
+          <button onclick="clearPreferences('yerel')">Listeyi Temizle</button>
+        </div>
+      </div>
+
+      <div class="print-section no-print">
+        <h3>Tercih Listesini Çıktı Al</h3>
+        <button onclick="printPreferences()">Tercih Listesini Yazdır</button>
+        <button onclick="exportToText()">Metin Dosyası Olarak Kaydet</button>
+        <button onclick="exportToImage()">Resim Olarak İndir</button>
+      </div>
+
+      <div id="printOutput" class="print-output"></div>
+    </div>
+  </div>
+
+  <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+  <script>
+    const schools = [
+      { name: "Kilis Mehmet Zelzele Fen Lisesi", type: "Fen", score: 9.41, placement: "Merkezi" },
+      { name: "Kilis Anadolu Lisesi", type: "Anadolu", score: 18.6, placement: "Merkezi" },
+      { name: "Nedim Ökmen Anadolu Lisesi", type: "Anadolu", score: 26.37, placement: "Merkezi" },
+      { name: "Mübeccel-Suphi Yavaşça SBL", type: "Sosyal Bilimler", score: 31.31, placement: "Merkezi" },
+      { name: "Ekrem Çetin Kız Anadolu İHL (Proje)", type: "İHL", score: 57.43, placement: "Merkezi" },
+      { name: "Kilis MTAL (Endüstri) (Birkaç programı)", type: "Meslek", score: 81.96, placement: "Merkezi" },
+      { name: "Kilis Anadolu İmam Hatip Lisesi (Proje)", type: "İHL", score: 87.88, placement: "Merkezi" },
+      { name: "M. Hanifi ve Ökkeş Cumbus MTAL (Ticaret) (Birkaç programı)", type: "Meslek", score: 92.95, placement: "Merkezi" },
+      { name: "Hacı Mehmet Koçarslan Anadolu Lisesi", type: "Anadolu", score: 87.96, placement: "Yerel" },
+      { name: "Şehit Hasan Özüberk Anadolu Lisesi", type: "Anadolu", score: 90.52, placement: "Yerel" },
+      { name: "TOBB 15 Temmuz Şehitleri Anadolu Lisesi", type: "Anadolu", score: 76.88, placement: "Yerel" },
+      { name: "Mehmet Sanlı MTAL (Sağlık)", type: "Meslek", score: 76.72, placement: "Yerel" },
+      { name: "Ahmet Karakılınç Anadolu Lisesi", type: "Anadolu", score: 63.62, placement: "Yerel" },
+      { name: "Ekrem Çetin Kız Anadolu İmam Hatip Lisesi", type: "İHL", score: 63.14, placement: "Yerel" },
+      { name: "Kilis MTAL (Endüstri)", type: "Meslek", score: 65.60, placement: "Yerel" },
+      { name: "M. Hanifi ve Ökkeş Cumbus MTAL (Ticaret)", type: "Meslek", score: 51.01, placement: "Yerel" },
+      { name: "Eyüp Gökçeimam Kız Anadolu İHL", type: "İHL", score: 46.23, placement: "Yerel" },
+      { name: "Kilis Yaşar Aktürk MTAL (Turizm)", type: "Meslek", score: 35.71, placement: "Yerel" },
+      { name: "Mustafa Kın Kız MTAL", type: "Meslek", score: 35, placement: "Yerel" },
+      { name: "Öncüpınar Hürriyet Anadolu İHL", type: "İHL", score: 28.54, placement: "Yerel" },
+      { name: "Kilis Anadolu İmam Hatip Lisesi", type: "İHL", score: 26.72, placement: "Yerel" },
+    ];
+
+    let preferences = {
+      merkezi: [],
+      yerel: []
+    };
+
+    document.getElementById('type').addEventListener('change', function () {
+      document.getElementById('scoreBlock').style.display = this.value === 'Merkezi' ? 'block' : 'none';
+      document.getElementById('obpBlock').style.display = this.value === 'Yerel' ? 'block' : 'none';
+    });
+
+    function showTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.classList.remove('active');
+      });
+      document.querySelectorAll('.tab-button').forEach(button => {
+        button.classList.remove('active');
+      });
+      
+      document.getElementById(tabId).classList.add('active');
+      document.querySelector(`button[onclick="showTab('${tabId}')"]`).classList.add('active');
+      
+      // Sekme değiştiğinde uyarıyı kontrol et
+      if (tabId === 'merkeziTab' && preferences.merkezi.length > 0 && preferences.yerel.length === 0) {
+        document.getElementById('merkeziWarning').style.display = 'block';
+      } else {
+        document.getElementById('merkeziWarning').style.display = 'none';
+      }
+    }
+
+    function interpretOBP(obp) {
+      if (obp < 50) return "Düşük OBP – Meslek/İHL daha uygun olabilir";
+      if (obp < 70) return "Orta OBP – Anadolu/Meslek dengeli olabilir";
+      return "Yüksek OBP – Anadolu/Sosyal Bilimler tercih edilebilir";
+    }
+
+    function filterSchools() {
+      const type = document.getElementById('type').value;
+      const schoolType = document.getElementById('schoolType').value;
+      const userScore = parseFloat(document.getElementById('score').value);
+      const userOBP = parseFloat(document.getElementById('obp').value);
+      const tbody = document.querySelector('#results tbody');
+      const suggestions = document.getElementById('suggestions');
+      tbody.innerHTML = '';
+      suggestions.innerHTML = '';
+
+      const filtered = schools.filter(s => {
+        return s.placement === type && (schoolType === '' || s.type === schoolType);
+      });
+
+      filtered.forEach(s => {
+        let comment = '-';
+        let metricDisplay = '-';
+        let suitable = false;
+
+        if (type === 'Merkezi' && !isNaN(userScore)) {
+          const diff = s.score - userScore;
+          if (diff >= 10) { comment = 'Çok Güvenli'; suitable = true; }
+          else if (diff >= 0) { comment = 'Güvenli'; suitable = true; }
+          else if (diff >= -5) { comment = 'Zor'; }
+          else comment = 'Çok Zor';
+          metricDisplay = (s.score || '-') + '%';
+        } else if (type === 'Yerel' && !isNaN(userOBP)) {
+          comment = interpretOBP(userOBP);
+          metricDisplay = s.score + ' OBP';
+          if (userOBP >= s.score - 5) suitable = true;
+        }
+
+        if (suitable) {
+          const li = document.createElement('li');
+          li.textContent = `${s.name} (${s.type})`;
+          suggestions.appendChild(li);
+        }
+
+        const row = `
+          <tr>
+            <td>${s.name}</td>
+            <td>${s.type}</td>
+            <td>${metricDisplay}</td>
+            <td>${s.placement}</td>
+            <td>${comment}</td>
+            <td><button onclick="addToPreferences('${s.name}', '${s.type}', '${metricDisplay}', '${s.placement}')">Listeye Ekle</button></td>
+          </tr>
+        `;
+        tbody.insertAdjacentHTML('beforeend', row);
+      });
+    }
+
+    function addToPreferences(name, type, metric, placement) {
+      const targetList = placement === 'Merkezi' ? 'merkezi' : 'yerel';
+      
+      // MERKEZİ TERCİH İÇİN KATI KURAL: EN AZ 1 YEREL TERCİH ZORUNLU
+      if (targetList === 'merkezi') {
+        if (preferences.yerel.length === 0) {
+          alert('Merkezi tercih yapabilmek için önce en az 1 yerel tercih yapmalısınız!');
+          document.getElementById('merkeziWarning').style.display = 'block';
+          showTab('yerelTab');
+          
+          // Kullanıcıyı yerel tercih ekranına yönlendir
+          document.getElementById('yerelTab').scrollIntoView({ behavior: 'smooth' });
+          return;
+        }
+        
+        // Merkezi tercih eklemeden önce yerel tercih sayısını kontrol et
+        const remainingYerelSlots = 5 - preferences.yerel.length;
+        if (remainingYerelSlots > 0) {
+          const confirmAdd = confirm(`Merkezi tercih eklemek üzeresiniz. \n\nHenüz ${remainingYerelSlots} yerel tercih hakkınız kullanılmadı. \n\nYine de devam etmek istiyor musunuz?`);
+          if (!confirmAdd) {
+            showTab('yerelTab');
+            return;
+          }
+        }
+      }
+      
+      // Aynı okulun farklı listelerde olup olmadığını kontrol et
+      if (isSchoolInAnyPreference(name)) {
+        alert('Bu okul zaten tercih listenizde bulunmaktadır (Merkezi veya Yerel).');
+        return;
+      }
+      
+      // Liste limitlerini kontrol et
+      if (targetList === 'merkezi') {
+        if (preferences.merkezi.length >= 10) {
+          alert('Merkezi tercih listesine en fazla 10 okul ekleyebilirsiniz!');
+          return;
+        }
+      } else if (targetList === 'yerel') {
+        if (preferences.yerel.length >= 5) {
+          alert('Yerel tercih listesine en fazla 5 okul ekleyebilirsiniz!');
+          return;
+        }
+        
+        const sameTypeCount = preferences.yerel.filter(item => item.type === type).length;
+        if (sameTypeCount >= 3) {
+          alert(`Yerel tercih listesinde aynı okul türünden (${type}) en fazla 3 okul ekleyebilirsiniz!`);
+          return;
+        }
+      }
+      
+      preferences[targetList].push({ name, type, metric, placement });
+      updatePreferenceList(targetList);
+      
+      // Merkezi tercih uyarısını gizle
+      if (preferences.yerel.length > 0) {
+        document.getElementById('merkeziWarning').style.display = 'none';
+      }
+      
+      // Tercih eklenen listeyi göster
+      showTab(targetList + 'Tab');
+    }
+
+    function isSchoolInAnyPreference(schoolName) {
+      return [...preferences.merkezi, ...preferences.yerel].some(item => item.name === schoolName);
+    }
+
+    function removeFromPreference(listType, index) {
+      preferences[listType].splice(index, 1);
+      updatePreferenceList(listType);
+      
+      // Merkezi tercih uyarısını kontrol et
+      if (listType === 'yerel' && preferences.yerel.length === 0 && preferences.merkezi.length > 0) {
+        document.getElementById('merkeziWarning').style.display = 'block';
+      }
+    }
+
+    function movePreference(listType, index, direction) {
+      if (direction === 'up' && index > 0) {
+        // Yukarı taşı
+        const temp = preferences[listType][index];
+        preferences[listType][index] = preferences[listType][index - 1];
+        preferences[listType][index - 1] = temp;
+        updatePreferenceList(listType);
+      } else if (direction === 'down' && index < preferences[listType].length - 1) {
+        // Aşağı taşı
+        const temp = preferences[listType][index];
+        preferences[listType][index] = preferences[listType][index + 1];
+        preferences[listType][index + 1] = temp;
+        updatePreferenceList(listType);
+      }
+    }
+
+    function updatePreferenceList(listType = null) {
+      if (!listType || listType === 'merkezi') {
+        const listElement = document.getElementById('merkeziPreferenceList');
+        listElement.innerHTML = '';
+        
+        preferences.merkezi.forEach((item, index) => {
+          const itemElement = document.createElement('div');
+          itemElement.className = 'preference-item';
+          itemElement.innerHTML = `
+            <span>${index + 1}. ${item.name} (${item.type}) - ${item.metric}</span>
+            <div class="reorder-buttons">
+              <button onclick="movePreference('merkezi', ${index}, 'up')" ${index === 0 ? 'disabled' : ''}>↑</button>
+              <button onclick="movePreference('merkezi', ${index}, 'down')" ${index === preferences.merkezi.length - 1 ? 'disabled' : ''}>↓</button>
+              <button onclick="removeFromPreference('merkezi', ${index})">Kaldır</button>
+            </div>
+          `;
+          listElement.appendChild(itemElement);
+        });
+        
+        // Merkezi tercih sayısını güncelle
+        document.getElementById('merkeziCount').textContent = preferences.merkezi.length;
+      }
+      
+      if (!listType || listType === 'yerel') {
+        const listElement = document.getElementById('yerelPreferenceList');
+        listElement.innerHTML = '';
+        
+        preferences.yerel.forEach((item, index) => {
+          const itemElement = document.createElement('div');
+          itemElement.className = 'preference-item';
+          itemElement.innerHTML = `
+            <span>${index + 1}. ${item.name} (${item.type}) - ${item.metric}</span>
+            <div class="reorder-buttons">
+              <button onclick="movePreference('yerel', ${index}, 'up')" ${index === 0 ? 'disabled' : ''}>↑</button>
+              <button onclick="movePreference('yerel', ${index}, 'down')" ${index === preferences.yerel.length - 1 ? 'disabled' : ''}>↓</button>
+              <button onclick="removeFromPreference('yerel', ${index})">Kaldır</button>
+            </div>
+          `;
+          listElement.appendChild(itemElement);
+        });
+        
+        // Yerel tercih sayısını güncelle
+        document.getElementById('yerelCount').textContent = preferences.yerel.length;
+      }
+    }
+
+    function savePreferences() {
+      if (preferences.merkezi.length === 0 && preferences.yerel.length === 0) {
+        alert('Tercih listeniz boş!');
+        return;
+      }
+      
+      // YEREL TERCİH ZORUNLULUĞU KONTROLÜ - DAHA KATI
+      if (preferences.merkezi.length > 0 && preferences.yerel.length === 0) {
+        alert('Merkezi tercih yapabilmek için en az 1 yerel tercih yapmalısınız!\n\nLütfen önce yerel tercihlerinizi ekleyin.');
+        showTab('yerelTab');
+        document.getElementById('merkeziWarning').style.display = 'block';
+        document.getElementById('yerelTab').scrollIntoView({ behavior: 'smooth' });
+        return;
+      }
+      
+      // Tercih kurallarını kontrol et
+      if (preferences.merkezi.length > 10) {
+        alert('Merkezi tercih listesinde en fazla 10 okul olabilir!');
+        return;
+      }
+      
+      if (preferences.yerel.length > 5) {
+        alert('Yerel tercih listesinde en fazla 5 okul olabilir!');
+        return;
+      }
+      
+      // Yerel tercihlerde aynı türden 3'ten fazla okul var mı kontrol et
+      const yerelTypes = {};
+      preferences.yerel.forEach(item => {
+        yerelTypes[item.type] = (yerelTypes[item.type] || 0) + 1;
+      });
+      
+      for (const type in yerelTypes) {
+        if (yerelTypes[type] > 3) {
+          alert(`Yerel tercih listesinde ${type} türünden 3'ten fazla okul seçemezsiniz!`);
+          return;
+        }
+      }
+      
+      localStorage.setItem('schoolPreferences', JSON.stringify(preferences));
+      alert('Tercihleriniz başarıyla kaydedildi!');
+    }
+
+    function loadPreferences() {
+      const savedPreferences = localStorage.getItem('schoolPreferences');
+      if (savedPreferences) {
+        preferences = JSON.parse(savedPreferences);
+        updatePreferenceList();
+        
+        // Merkezi tercih uyarısını kontrol et
+        if (preferences.merkezi.length > 0 && preferences.yerel.length === 0) {
+          document.getElementById('merkeziWarning').style.display = 'block';
+          showTab('merkeziTab');
+        } else {
+          document.getElementById('merkeziWarning').style.display = 'none';
+        }
+        
+        alert('Tercihleriniz başarıyla yüklendi!');
+      } else {
+        alert('Kayıtlı tercih bulunamadı!');
+      }
+    }
+
+    function clearPreferences(listType) {
+      if (confirm(`${listType === 'merkezi' ? 'Merkezi' : 'Yerel'} tercih listenizi temizlemek istediğinize emin misiniz?`)) {
+        preferences[listType] = [];
+        updatePreferenceList(listType);
+        
+        // Merkezi tercih uyarısını kontrol et
+        if (listType === 'yerel' && preferences.merkezi.length > 0) {
+          document.getElementById('merkeziWarning').style.display = 'block';
+        }
+      }
+    }
+
+    function generatePrintContent() {
+      const printOutput = document.getElementById('printOutput');
+      printOutput.innerHTML = '';
+      
+      // Başlık
+      const header = document.createElement('div');
+      header.className = 'print-header';
+      header.innerHTML = `
+        <h2>2025 LGS Tercih Listesi</h2>
+        <p>Oluşturulma Tarihi: ${new Date().toLocaleString('tr-TR')}</p>
+      `;
+      printOutput.appendChild(header);
+      
+      // Merkezi Tercihler
+      if (preferences.merkezi.length > 0) {
+        const merkeziTitle = document.createElement('h3');
+        merkeziTitle.textContent = 'Merkezi Tercihler (10 adet)';
+        printOutput.appendChild(merkeziTitle);
+        
+        const merkeziTable = document.createElement('table');
+        merkeziTable.className = 'print-table';
+        merkeziTable.innerHTML = `
+          <thead>
+            <tr>
+              <th>Sıra</th>
+              <th>Okul Adı</th>
+              <th>Tür</th>
+              <th>Yüzdelik Dilim / OBP</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${preferences.merkezi.map((item, index) => `
+              <tr>
+                <td>${index + 1}</td>
+                <td>${item.name}</td>
+                <td>${item.type}</td>
+                <td>${item.metric}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        `;
+        printOutput.appendChild(merkeziTable);
+      }
+      
+      // Yerel Tercihler
+      if (preferences.yerel.length > 0) {
+        const yerelTitle = document.createElement('h3');
+        yerelTitle.textContent = 'Yerel Tercihler (5 adet)';
+        yerelTitle.style.marginTop = '30px';
+        printOutput.appendChild(yerelTitle);
+        
+        const yerelTable = document.createElement('table');
+        yerelTable.className = 'print-table';
+        yerelTable.innerHTML = `
+          <thead>
+            <tr>
+              <th>Sıra</th>
+              <th>Okul Adı</th>
+              <th>Tür</th>
+              <th>Yüzdelik Dilim / OBP</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${preferences.yerel.map((item, index) => `
+              <tr>
+                <td>${index + 1}</td>
+                <td>${item.name}</td>
+                <td>${item.type}</td>
+                <td>${item.metric}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        `;
+        printOutput.appendChild(yerelTable);
+      }
+      
+      // Not
+      if (preferences.merkezi.length === 0 && preferences.yerel.length === 0) {
+        const emptyNote = document.createElement('p');
+        emptyNote.textContent = 'Henüz tercih eklenmemiş.';
+        printOutput.appendChild(emptyNote);
+      }
+      
+      return printOutput;
+    }
+
+    function printPreferences() {
+      generatePrintContent();
+      window.print();
+    }
+
+    function exportToText() {
+      if (preferences.merkezi.length === 0 && preferences.yerel.length === 0) {
+        alert('Yazdırılacak tercih bulunamadı!');
+        return;
+      }
+      
+      let textContent = '2025 LGS Tercih Listesi\n';
+      textContent += 'Oluşturulma Tarihi: ' + new Date().toLocaleString('tr-TR') + '\n\n';
+      
+      // Merkezi Tercihler
+      if (preferences.merkezi.length > 0) {
+        textContent += '=== MERKEZİ TERCİHLER (10 adet) ===\n\n';
+        textContent += 'Sıra\tOkul Adı\tTür\tYüzdelik Dilim / OBP\n';
+        preferences.merkezi.forEach((item, index) => {
+          textContent += `${index + 1}\t${item.name}\t${item.type}\t${item.metric}\n`;
+        });
+        textContent += '\n';
+      }
+      
+      // Yerel Tercihler
+      if (preferences.yerel.length > 0) {
+        textContent += '=== YEREL TERCİHLER (5 adet) ===\n\n';
+        textContent += 'Sıra\tOkul Adı\tTür\tYüzdelik Dilim / OBP\n';
+        preferences.yerel.forEach((item, index) => {
+          textContent += `${index + 1}\t${item.name}\t${item.type}\t${item.metric}\n`;
+        });
+      }
+      
+      // Dosyayı indir
+      const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'lgs_tercih_listesi.txt';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function exportToImage() {
+      generatePrintContent();
+      const printOutput = document.getElementById('printOutput');
+      
+      // Sayfa boyutunu ayarla ve html2canvas'ı çalıştır
+      html2canvas(printOutput, {
+        scale: 2,
+        logging: false,
+        useCORS: true,
+        allowTaint: true,
+        scrollX: 0,
+        scrollY: 0,
+        windowWidth: printOutput.scrollWidth,
+        windowHeight: printOutput.scrollHeight
+      }).then(canvas => {
+        // Canvas'tan resmi oluştur ve indir
+        const link = document.createElement('a');
+        link.download = 'lgs_tercih_listesi.png';
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      }).catch(err => {
+        console.error('Resim oluşturulurken hata:', err);
+        alert('Resim oluşturulurken hata oluştu! Lütfen tekrar deneyin.');
+      });
+    }
+
+    // Sayfa yüklendiğinde tercih listelerini güncelle
+    updatePreferenceList();
+  </script>
+</body>
+</html>
