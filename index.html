@@ -166,7 +166,6 @@
     </div>
   </div>
 
-  <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
   <script>
     const schools = [
       { name: "Kilis Mehmet Zelzele Fen Lisesi", type: "Fen", score: 9.41, placement: "Merkezi" },
@@ -457,4 +456,8 @@
         }
       }
       
-      localStorage.setItem('schoolPreferences', JSON.stringify(preferenc
+      localStorage.setItem('schoolPreferences', JSON.stringify(preferences));
+      alert('Tercihleriniz başarıyla kaydedildi!');
+    }
+
+    function load
