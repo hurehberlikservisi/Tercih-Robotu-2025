@@ -621,33 +621,9 @@
       a.download = 'lgs_tercih_listesi.txt';
       a.click();
       URL.revokeObjectURL(url);
-    }
 
-    function exportToImage() {
-      generatePrintContent();
-      const printOutput = document.getElementById('printOutput');
-      
-      // Sayfa boyutunu ayarla ve html2canvas'ı çalıştır
-      html2canvas(printOutput, {
-        scale: 2,
-        logging: false,
-        useCORS: true,
-        allowTaint: true,
-        scrollX: 0,
-        scrollY: 0,
-        windowWidth: printOutput.scrollWidth,
-        windowHeight: printOutput.scrollHeight
-      }).then(canvas => {
-        // Canvas'tan resmi oluştur ve indir
-        const link = document.createElement('a');
-        link.download = 'lgs_tercih_listesi.png';
-        link.href = canvas.toDataURL('image/png');
-        link.click();
-      }).catch(err => {
-        console.error('Resim oluşturulurken hata:', err);
-        alert('Resim oluşturulurken hata oluştu! Lütfen tekrar deneyin.');
       });
-    }
+
 
     // Sayfa yüklendiğinde tercih listelerini güncelle
     updatePreferenceList();
